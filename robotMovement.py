@@ -1,12 +1,12 @@
 #These are the pins, meaning front/rear driver/passenger
-PinFD1 = Pin(0, Pin.OUT)
-PinFD2 = Pin(0, Pin.OUT)
-PinFP1 = Pin(0, Pin.OUT)
-PinFP2 = Pin(0, Pin.OUT)
-PinRD1 = Pin(0, Pin.OUT)
-PinRD2 = Pin(0, Pin.OUT)
-PinRP1 = Pin(0, Pin.OUT)
-PinRP2 = Pin(0, Pin.OUT)
+PinFD1 = 0
+PinFD2 = 1
+PinFP1 = 2
+PinFP2 = 3
+PinRD1 = 4
+PinRD2 = 5
+PinRP1 = 6
+PinRP2 = 7
 
 #These are all of the direction constants
 D_FORWARD        = 0
@@ -20,9 +20,9 @@ D_BACKWARD_RIGHT = 7
 D_END            = 8 #Stops the robot's motion
 
 #These are here for some reason to make it easy to change the code later maybe
-MOTOR_FORWARD  =  1
-MOTOR_BACKWARD = -1
-MOTOR_OFF      =  0
+MOTOR_FORWARD    =  1
+MOTOR_BACKWARD   = -1
+MOTOR_OFF        =  0
 
 #These are the rotation constant
 R_CW             = 0
@@ -117,10 +117,10 @@ def rotate(int direction):
 def move360(double direction):
     return
 
-def driveMotor(Pin pin1, Pin pin2, int power):
+def driveMotor(int pin1, int pin2, int power):
     if power < 0:
-        pin1.value(power)
-        pin2.value(MOTOR_OFF)
+        board.digital[pin1].write(1)
+        board.digital[pin2].write(0)
     else:
-        pin1.value(MOTOR_OFF)
-        pin2.value(-power)
+        board.digital[pin1].write(0)
+        board.digital[pin2].write(1)
