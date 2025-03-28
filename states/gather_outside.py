@@ -34,10 +34,10 @@ def run():
                 time.sleep(1)
                 state = GatherState.SECURING
         case GatherState.SECURING:
-            mv.rotate_arm(40)
+            rotate_arm(40)
             state = GatherState.SEARCHING_BOX
         case GatherState.SEARCHING_BOX:
-            mv.rotate(mv.R_CW)
+            rotate(R_CW)
 
             img, _ = cv2.imread(robot.camera)
             greyscale_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)

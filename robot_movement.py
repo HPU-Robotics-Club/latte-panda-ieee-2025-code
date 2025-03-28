@@ -1,7 +1,3 @@
-from pyfirmata import Arduino, util
-
-import robot
-
 #These are the pins, meaning front/rear driver/passenger
 FD_ENA = 0
 FD_1 = 0
@@ -46,12 +42,12 @@ def stop_motion():
     drive_motor(RP_1, RP_2, 0)
 
 #Start move8 Defintion
-def move8(direction):
+def move8(board, direction):
     speed = 255
-    robot.board.analog[FD_ENA].write(speed)
-    robot.board.analog[FP_ENA].write(speed)
-    robot.board.analog[RD_ENB].write(speed)
-    robot.board.analog[RP_ENB].write(speed)
+    board.analog[FD_ENA].write(speed)
+    board.analog[FP_ENA].write(speed)
+    board.analog[RD_ENB].write(speed)
+    board.analog[RP_ENB].write(speed)
 
     if direction == D_FORWARD: #Forward
         drive_motor(FD_1, FD_2, MOTOR_FORWARD)
@@ -110,7 +106,7 @@ def move8(direction):
 #End move8 Defintion
 
 #Start rotate Definition
-def rotate(direction):
+def rotate(board, direction):
     if direction == R_CW:
         drive_motor(FD_1, FD_2, MOTOR_FORWARD)
         drive_motor(RD_1, RD_2, MOTOR_FORWARD)
@@ -134,12 +130,12 @@ def rotate(direction):
 
 def drive_motor(pin1, pin2, power):
     if power < 0:
-        robot.board.digital[pin1].write(1)
-        robot.board.digital[pin2].write(0)
+        board.digital[pin1].write(1)
+        board.digital[pin2].write(0)
     else:
-        robot.board.digital[pin1].write(0)
-        robot.board.digital[pin2].write(1)
+        board.digital[pin1].write(0)
+        board.digital[pin2].write(1)
 
 
-def rotate_arm(angle):
-    robot.board[ARM_SERVO].write(angle)
+def rotate_arm(board, angle):
+    board[ARM_SERVO].write(angle)
