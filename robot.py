@@ -22,7 +22,7 @@ class RobotState(Enum):
 
 at_detector = AprilTagDetector()
 camera = cv2.VideoCapture()
-state = RobotState.WAITING
+state = RobotState.ESCAPE_START
 
 
 def is_light_on() -> bool:
