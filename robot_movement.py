@@ -3,15 +3,19 @@ from pyfirmata import Arduino, util
 import robot
 
 #These are the pins, meaning front/rear driver/passenger
+FD_ENA = 0
 FD_1 = 0
 FD_2 = 1
-FP_1 = 2
-FP_2 = 3
-RD_1 = 4
-RD_2 = 5
-RP_1 = 6
-RP_2 = 7
-ARM_SERVO = 9
+FP_ENA = 2
+FP_1 = 7
+FP_2 = 8
+RD_ENB = 1
+RD_1 = 2
+RD_2 = 3
+RP_ENB = 3
+RP_1 = 9
+RP_2 = 10
+ARM_SERVO = 12
 
 #These are all of the direction constants
 D_FORWARD        = 0
@@ -43,6 +47,12 @@ def stop_motion():
 
 #Start move8 Defintion
 def move8(direction):
+    speed = 255
+    robot.board.analog[FD_ENA].write(speed)
+    robot.board.analog[FP_ENA].write(speed)
+    robot.board.analog[RD_ENB].write(speed)
+    robot.board.analog[RP_ENB].write(speed)
+
     if direction == D_FORWARD: #Forward
         drive_motor(FD_1, FD_2, MOTOR_FORWARD)
         drive_motor(FP_1, FP_2, MOTOR_FORWARD)
