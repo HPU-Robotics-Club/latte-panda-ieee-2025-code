@@ -117,10 +117,10 @@ def stop_motion():
 #Start move8 Defintion
 def move8(direction):
     speed = 255
-    board.analog[FD_ENA].write(speed)
-    board.analog[FP_ENA].write(speed)
-    board.analog[RD_ENB].write(speed)
-    board.analog[RP_ENB].write(speed)
+    FD_ENA.write(speed)
+    FP_ENA.write(speed)
+    RD_ENB.write(speed)
+    RP_ENB.write(speed)
 
     if direction == D_FORWARD: #Forward
         drive_motor(FD_1, FD_2, MOTOR_FORWARD)
@@ -180,6 +180,11 @@ def move8(direction):
 
 #Start rotate Definition
 def rotate(direction):
+    speed = 255
+    FD_ENA.write(speed)
+    FP_ENA.write(speed)
+    RD_ENB.write(speed)
+    RP_ENB.write(speed)
     if direction == R_CW:
         drive_motor(FD_1, FD_2, MOTOR_FORWARD)
         drive_motor(RD_1, RD_2, MOTOR_FORWARD)
@@ -211,7 +216,8 @@ def drive_motor(pin1, pin2, power):
 
 
 def rotate_arm(angle):
-    board[ARM_SERVO].write(angle)
+    # board[ARM_SERVO].write(angle)
+    pass
 
 
 while True:
