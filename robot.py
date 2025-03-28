@@ -47,7 +47,7 @@ print("Loading capture and april tag detector...")
 
 at_detector = AprilTagDetector()
 camera = cv2.VideoCapture()
-state = RobotState.ESCAPE_START
+state = RobotState.WAITING
 
 
 def is_light_on() -> bool:
@@ -97,7 +97,6 @@ def update():
             print("i got nun lil bro we're cooked...")
             rotate_arm(40)
             state = RobotState.GATHER_OUTSIDE
-            gather_state = GatherState.SEARCHING_ROCKS
 
         case RobotState.GATHER_OUTSIDE:
             global gather_state
