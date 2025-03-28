@@ -7,11 +7,30 @@ from util.april_tag import AprilTagDetector
 
 
 # Setup
-print("Loading...")
+print("Loading pins...")
 board = Arduino('/dev/ttyACM0')
 
 US_SENSOR_PIN = board.get_pin('a:0:i')
 LIGHT_SENSOR_PIN = board.get_pin('a:4:i')
+
+
+# PWM, DIR
+# passengers: 3 2 12; 5 13 7
+# drivers: 10 11; 8, 9:::10 8; 11 9
+#These are the pins, meaning front/rear driver/passenger
+FD = board.get_pin('d:8:o')
+FD_PWM = board.get_pin('d:10:p')
+
+FP_ENA = board.get_pin('d:6:p')
+FP_1 = board.get_pin('d:7:o')
+FP_2 = board.get_pin('d:2:o')
+
+RD = board.get_pin('d:9:o')
+RD_PWM = board.get_pin('d:11:p')
+
+RP_ENB = board.get_pin('d:3:p')
+RP_1 = board.get_pin('d:5:o')
+RP_2 = board.get_pin('d:13:o')
 
 
 class RobotState(Enum):
@@ -23,6 +42,8 @@ class RobotState(Enum):
     GATHER_INSIDE = 5  # Collect rocks inside the cave
     EXIT_CAVE = 6  # Going out of the cave
 
+
+print("Loading capture and april tag detector...")
 
 at_detector = AprilTagDetector()
 camera = cv2.VideoCapture()
@@ -109,23 +130,6 @@ def update():
 
 
 
-# PWM, DIR
-# passengers: 3 2 12; 5 13 7
-# drivers: 10 11; 8, 9:::10 8; 11 9
-#These are the pins, meaning front/rear driver/passenger
-FD = board.get_pin('d:8:o')
-FD_PWM = board.get_pin('d:10:p')
-
-FP_ENA = board.get_pin('d:6:p')
-FP_1 = board.get_pin('d:7:o')
-FP_2 = board.get_pin('d:2:o')
-
-RD = board.get_pin('d:9:o')
-RD_PWM = board.get_pin('d:11:p')
-
-RP_ENB = board.get_pin('d:3:p')
-RP_1 = board.get_pin('d:5:o')
-RP_2 = board.get_pin('d:13:o')
 
 ARM_SERVO = 12
 
