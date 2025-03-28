@@ -3,11 +3,15 @@ from enum import Enum
 from pyfirmata import Arduino, util, SERVO
 import cv2
 
-import robot_movement as mv
 from util.april_tag import AprilTagDetector
 
 
-LIGHT_SENSOR_PIN = 4
+# Setup
+print("Loading...")
+board = Arduino('/dev/ttyACM0')
+
+US_SENSOR_PIN = board.get_pin('a:0:i')
+LIGHT_SENSOR_PIN = board.get_pin('a:4:i')
 
 
 class RobotState(Enum):
@@ -26,9 +30,8 @@ state = RobotState.ESCAPE_START
 
 
 def is_light_on() -> bool:
-
     # When a bright light is detected (at least that's what this is supposed to be)
-    darkness = board.get_pin(f"a:{LIGHT_SENSOR_PIN}:i").read()
+    darkness = LIGHT_SENSOR_PIN.read()
     print(f"fall into darkness... {darkness}")
 
     if darkness is not None and darkness < 1000:
@@ -38,54 +41,102 @@ def is_light_on() -> bool:
 
 time_start = 0
 
+
+class GatherState(Enum):
+    SEARCHING_ROCKS = 0
+    COLLECTING = 1
+    SECURING = 2
+    SEARCHING_BOX = 3
+    GO_TO_BOX = 4
+    DEPOSIT = 5
+
+
+gather_state = GatherState.SEARCHING_ROCKS
+
 def update():
     global state
 
     match state:
-        case RobotState.WAITING:
+        case RobotState.WAITING:  # Waiting state
             if is_light_on():
                 state = RobotState.ESCAPE_START
-        case RobotState.ESCAPE_START:
+
+        case RobotState.ESCAPE_START:  # Escape start state
             global time_start
             now = time.time()
 
             if time_start == 0:
                 time_start = now
-            elif now - time_start >= 1:
+            elif now - time_start < 1:
                 move8(D_FORWARD)
             else:
                 state = RobotState.MOVE_BOX
-        case RobotState.MOVE_BOX:
-            # states.move_box.run()
-            pass
+
+        case RobotState.MOVE_BOX:  # Move box state
+            print("i got nun lil bro we're cooked...")
+            rotate_arm(40)
+            state = RobotState.GATHER_OUTSIDE
+            gather_state = GatherState.SEARCHING_ROCKS
+
         case RobotState.GATHER_OUTSIDE:
-            # states.gather_outside.run()
-            pass
+            global gather_state
+
+            match gather_state:
+                case GatherState.SEARCHING_ROCKS:
+                    pass
+                case GatherState.COLLECTING:
+                    dist = US_SENSOR_PIN.read()
+
+                    if dist <= 6:
+                        time.sleep(1)
+                        gather_state = GatherState.SECURING
+                case GatherState.SECURING:
+                    rotate_arm(40)
+                    gather_state = GatherState.SEARCHING_BOX
+                case GatherState.SEARCHING_BOX:
+                    rotate(R_CW)
+
+                    img, _ = cv2.imread(camera)
+                    greyscale_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+                    detections = at_detector.detect_april_tags(greyscale_img)
+
+                    if len(detections) == 0:
+                        return
+
+                    for detection in detections:  # TODO
+                        return
 
 
-# Setup
-board = Arduino('/dev/ttyACM0')
 
-
+# PWM, DIR
+# passengers: 3 2 12; 5 13 7
+# drivers: 10 11; 8, 9:::10 8; 11 9
 #These are the pins, meaning front/rear driver/passenger
-FD_ENA = board.get_pin(f'a:0:o')
-FD_1 = 0
-FD_2 = 1
-FP_ENA = board.get_pin(f'a:2:o')
-FP_1 = 7
-FP_2 = 8
-RD_ENB = board.get_pin(f'a:1:o')
-RD_1 = 2
-RD_2 = 3
-RP_ENB = board.get_pin(f'a:3:o')
-RP_1 = 9
-RP_2 = 10
+FD = board.get_pin('d:8:o')
+FD_PWM = board.get_pin('d:10:p')
+
+FP_ENA = board.get_pin('d:12:p')
+FP_1 = board.get_pin('d:3:o')
+FP_2 = board.get_pin('d:2:o')
+
+RD = board.get_pin('d:11:o')
+RD_PWM = board.get_pin('d:9:p')
+
+RP_ENB = board.get_pin('d:7:p')
+RP_1 = board.get_pin('d:5:o')
+RP_2 = board.get_pin('d:13:o')
+
 ARM_SERVO = 12
 
 board.digital[ARM_SERVO].mode = SERVO
 it = util.Iterator(board)
 it.start()
 
+# Working pins
+# 7, 11, 5, 2, 3, 13
+# Not working
+# 6, 8, 9, 10, 12
 #These are all of the direction constants
 D_FORWARD        = 0
 D_BACKWARD       = 1
@@ -109,110 +160,122 @@ R_END            = 2 #Stops the robot's motion
 
 
 def stop_motion():
-    drive_motor(FD_1, FD_2, 0)
-    drive_motor(RD_1, RD_2, 0)
-    drive_motor(FP_1, FP_2, 0)
-    drive_motor(RP_1, RP_2, 0)
+    drive_fd(0, 0)
+    drive_fp(0, 0)
+    drive_rd(0, 0)
+    drive_fp(0, 0)
 
 #Start move8 Defintion
 def move8(direction):
     speed = 255
-    FD_ENA.write(speed)
-    FP_ENA.write(speed)
-    RD_ENB.write(speed)
-    RP_ENB.write(speed)
 
     if direction == D_FORWARD: #Forward
-        drive_motor(FD_1, FD_2, MOTOR_FORWARD)
-        drive_motor(FP_1, FP_2, MOTOR_FORWARD)
-        drive_motor(RD_1, RD_2, MOTOR_FORWARD)
-        drive_motor(RP_1, RP_2, MOTOR_FORWARD)
-
+        print("vrooming forward")
+        drive_fd(MOTOR_FORWARD, speed)
+        drive_fp(MOTOR_FORWARD, speed)
+        drive_rd(MOTOR_FORWARD, speed)
+        drive_rp(MOTOR_FORWARD, speed)
     elif direction == D_BACKWARD:#Backward
-        drive_motor(FD_1, FD_2, MOTOR_BACKWARD)
-        drive_motor(FP_1, FP_2, MOTOR_BACKWARD)
-        drive_motor(RD_1, RD_2, MOTOR_BACKWARD)
-        drive_motor(RP_1, RP_2, MOTOR_BACKWARD)
-
+        drive_fd(MOTOR_BACKWARD, speed)
+        drive_fp(MOTOR_BACKWARD, speed)
+        drive_rd(MOTOR_BACKWARD, speed)
+        drive_rp(MOTOR_BACKWARD, speed)
     elif direction == D_LEFT:#Left
-        drive_motor(FD_1, FD_2, MOTOR_FORWARD)
-        drive_motor(FP_1, FP_2, MOTOR_BACKWARD)
-        drive_motor(RD_1, RD_2, MOTOR_BACKWARD)
-        drive_motor(RP_1, RP_2, MOTOR_FORWARD)
-
+        drive_fd(MOTOR_FORWARD, speed)
+        drive_fp(MOTOR_BACKWARD, speed)
+        drive_rd(MOTOR_FORWARD, speed)
+        drive_rp(MOTOR_BACKWARD, speed)
     elif direction == D_RIGHT:#Right
-        drive_motor(FD_1, FD_2, MOTOR_BACKWARD)
-        drive_motor(FP_1, FP_2, MOTOR_FORWARD)
-        drive_motor(RD_1, RD_2, MOTOR_FORWARD)
-        drive_motor(RP_1, RP_2, MOTOR_BACKWARD)
-
+        drive_fd(MOTOR_BACKWARD, speed)
+        drive_fp(MOTOR_FORWARD, speed)
+        drive_rd(MOTOR_FORWARD, speed)
+        drive_rp(MOTOR_BACKWARD, speed)
     elif direction == D_FORWARD_RIGHT:#Forward Right
-        drive_motor(FD_1, FD_2, MOTOR_FORWARD)
-        drive_motor(FP_1, FP_2, MOTOR_OFF)
-        drive_motor(RD_1, RD_2, MOTOR_OFF)
-        drive_motor(RP_1, RP_2, MOTOR_FORWARD)
-
+        drive_fd(MOTOR_FORWARD, speed)
+        drive_fp(MOTOR_OFF, 0)
+        drive_rd(MOTOR_OFF, 0)
+        drive_rp(MOTOR_FORWARD, speed)
     elif direction == D_FORWARD_LEFT:#Forward Left
-        drive_motor(FD_1, FD_2, MOTOR_OFF)
-        drive_motor(FP_1, FP_2, MOTOR_FORWARD)
-        drive_motor(RD_1, RD_2, MOTOR_FORWARD)
-        drive_motor(RP_1, RP_2, MOTOR_OFF)
+        drive_fd(MOTOR_OFF, 0)
+        drive_fp(MOTOR_FORWARD, speed)
+        drive_rd(MOTOR_FORWARD, speed)
+        drive_rp(MOTOR_OFF, 0)
 
-    #NOTE I am not sure these two are correct
+    #FIXME I am not sure these two are correct
     elif direction == D_BACKWARD_LEFT:#Backward Left
-        drive_motor(FD_1, FD_2, MOTOR_BACKWARD)
-        drive_motor(FP_1, FP_2, MOTOR_OFF)
-        drive_motor(RD_1, RD_2, MOTOR_OFF)
-        drive_motor(RP_1, RP_2, MOTOR_BACKWARD)
-
+        drive_fd(MOTOR_BACKWARD, speed)
+        drive_fp(MOTOR_OFF, 0)
+        drive_rd(MOTOR_OFF, 0)
+        drive_rp(MOTOR_BACKWARD, speed)
     elif direction == D_BACKWARD_RIGHT: #Backward Right
-        drive_motor(FD_1, FD_2, MOTOR_OFF)
-        drive_motor(FP_1, FP_2, MOTOR_BACKWARD)
-        drive_motor(RD_1, RD_2, MOTOR_BACKWARD)
-        drive_motor(RP_1, RP_2, MOTOR_OFF)
-
+        drive_fd(MOTOR_OFF, 0)
+        drive_fp(MOTOR_BACKWARD, speed)
+        drive_rd(MOTOR_BACKWARD, speed)
+        drive_rp(MOTOR_OFF, 0)
     elif direction == D_END: #Ends Movement
-        drive_motor(FD_1, FD_2, MOTOR_OFF)
-        drive_motor(RD_1, RD_2, MOTOR_OFF)
-        drive_motor(FP_1, FP_2, MOTOR_OFF)
-        drive_motor(RP_1, RP_2, MOTOR_OFF)
-#End move8 Defintion
+        drive_fd(MOTOR_OFF, 0)
+        drive_fp(MOTOR_OFF, 0)
+        drive_rd(MOTOR_OFF, 0)
+        drive_rp(MOTOR_OFF, 0)
+
 
 #Start rotate Definition
 def rotate(direction):
     speed = 255
-    FD_ENA.write(speed)
-    FP_ENA.write(speed)
-    RD_ENB.write(speed)
-    RP_ENB.write(speed)
+
     if direction == R_CW:
-        drive_motor(FD_1, FD_2, MOTOR_FORWARD)
-        drive_motor(RD_1, RD_2, MOTOR_FORWARD)
-        drive_motor(FP_1, FP_2, MOTOR_BACKWARD)
-        drive_motor(RP_1, RP_2, MOTOR_BACKWARD)
+        drive_fd(MOTOR_FORWARD, speed)
+        drive_fp(MOTOR_BACKWARD, speed)
+        drive_rd(MOTOR_FORWARD, speed)
+        drive_rp(MOTOR_BACKWARD, speed)
     elif direction ==  R_CCW:
-        drive_motor(FD_1, FD_2, MOTOR_BACKWARD)
-        drive_motor(RD_1, RD_2, MOTOR_BACKWARD)
-        drive_motor(FP_1, FP_2, MOTOR_FORWARD)
-        drive_motor(RP_1, RP_2, MOTOR_FORWARD)
+        drive_fd(MOTOR_BACKWARD, speed)
+        drive_fp(MOTOR_FORWARD, speed)
+        drive_rd(MOTOR_BACKWARD, speed)
+        drive_rp(MOTOR_FORWARD, speed)
     elif direction == R_END:
-        drive_motor(FD_1, FD_2, MOTOR_OFF)
-        drive_motor(RD_1, RD_2, MOTOR_OFF)
-        drive_motor(FP_1, FP_2, MOTOR_OFF)
-        drive_motor(RP_1, RP_2, MOTOR_OFF)
+        drive_fd(MOTOR_OFF, 0)
+        drive_fp(MOTOR_OFF, 0)
+        drive_rd(MOTOR_OFF, 0)
+        drive_rp(MOTOR_OFF, 0)
 #End rotate Definition
 #
 # #maybe will be added later
 # def move360(double direction):
 #     return
 
-def drive_motor(pin1, pin2, power):
+
+def drive_fd(power: int, speed: float):
+    drive_motor_ot(FD, FD_PWM, power, speed)
+
+def drive_fp(power: int, speed: float):
+    drive_motor_en(FP_1, FP_2, FP_ENA, power, speed)
+
+def drive_rd(power: int, speed: float):
+    drive_motor_ot(RD, RD_PWM, power, speed)
+
+def drive_rp(power: int, speed: float):
+    drive_motor_en(RP_1, RP_2, RP_ENB, power, speed)
+
+
+def drive_motor_en(pin1, pin2, en_pin, power: int, speed: float):
+    en_pin.write(speed)
+
     if power < 0:
-        board.digital[pin1].write(1)
-        board.digital[pin2].write(0)
+        pin1.write(1)
+        pin2.write(0)
     else:
-        board.digital[pin1].write(0)
-        board.digital[pin2].write(1)
+        pin1.write(0)
+        pin2.write(1)
+
+
+def drive_motor_ot(dir_pin, pwm_pin, power: int, speed: float):
+    pwm_pin.write(speed)
+
+    if power < 0:
+        dir_pin.write(0)
+    else:
+        dir_pin.write(1)
 
 
 def rotate_arm(angle):
@@ -220,7 +283,10 @@ def rotate_arm(angle):
     pass
 
 
+print("Let the show commence!")
+
 while True:
     update()
+    time.sleep(0.05)
 
 
