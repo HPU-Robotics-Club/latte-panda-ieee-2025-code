@@ -116,14 +116,14 @@ def update():
 FD = board.get_pin('d:8:o')
 FD_PWM = board.get_pin('d:10:p')
 
-FP_ENA = board.get_pin('d:12:p')
-FP_1 = board.get_pin('d:3:o')
+FP_ENA = board.get_pin('d:6:p')
+FP_1 = board.get_pin('d:7:o')
 FP_2 = board.get_pin('d:2:o')
 
-RD = board.get_pin('d:11:o')
-RD_PWM = board.get_pin('d:9:p')
+RD = board.get_pin('d:9:o')
+RD_PWM = board.get_pin('d:11:p')
 
-RP_ENB = board.get_pin('d:7:p')
+RP_ENB = board.get_pin('d:3:p')
 RP_1 = board.get_pin('d:5:o')
 RP_2 = board.get_pin('d:13:o')
 
@@ -167,7 +167,7 @@ def stop_motion():
 
 #Start move8 Defintion
 def move8(direction):
-    speed = 255
+    speed = 1.0
 
     if direction == D_FORWARD: #Forward
         print("vrooming forward")
@@ -221,7 +221,7 @@ def move8(direction):
 
 #Start rotate Definition
 def rotate(direction):
-    speed = 255
+    speed = 1.0
 
     if direction == R_CW:
         drive_fd(MOTOR_FORWARD, speed)
