@@ -250,12 +250,6 @@ def rotate(direction):
 
 
 def drive_fd(power: int, speed: float):
-    drive_motor_ot(FD, FD_PWM, power, speed)
-
-def drive_fp(power: int, speed: float):
-    drive_motor_en(FP_1, FP_2, FP_ENA, power, speed)
-
-def drive_rd(power: int, speed: float):
     if power == 1:
         power_inp = -1
     elif power == -1:
@@ -263,7 +257,13 @@ def drive_rd(power: int, speed: float):
     else:
         power_inp = 0
 
-    drive_motor_ot(RD, RD_PWM, power_inp, speed)
+    drive_motor_ot(FD, FD_PWM, power_inp, speed)
+
+def drive_fp(power: int, speed: float):
+    drive_motor_en(FP_1, FP_2, FP_ENA, power, speed)
+
+def drive_rd(power: int, speed: float):
+    drive_motor_ot(RD, RD_PWM, power, speed)
 
 def drive_rp(power: int, speed: float):
     drive_motor_en(RP_1, RP_2, RP_ENB, power, speed)
