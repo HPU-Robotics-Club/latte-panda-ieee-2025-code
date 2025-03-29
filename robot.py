@@ -49,6 +49,8 @@ at_detector = AprilTagDetector()
 camera = cv2.VideoCapture()
 state = RobotState.WAITING
 
+cam_width = int(camera.get(cv2.CAP_PROP_FRAME_WIDTH))
+cam_height = int(camera.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
 def is_light_on() -> bool:
     # When a bright light is detected (at least that's what this is supposed to be)
@@ -62,6 +64,21 @@ def is_light_on() -> bool:
 
 time_start = 0
 
+container_ids = [5, 6]
+
+class CaveState(Enum):
+    FINDING_TAG = 0
+    IN = 1
+    AND_OUT = 2
+
+class BoxMovingState(Enum):
+    FINDING_TAG = 0
+    CENTERING_BOX = 1
+    GO_TO_BOX = 2
+    GRAB_BOX = 3
+    FINDING_PAD = 4
+    GO_TO_PAD = 5
+    DROP_BOX = 6  # mediafire reference
 
 class GatherState(Enum):
     SEARCHING_ROCKS = 0
@@ -71,7 +88,12 @@ class GatherState(Enum):
     GO_TO_BOX = 4
     DEPOSIT = 5
 
+cave_tag = None
+center_range = [200, 200]  # x y range
+cave_enter_time = -1
 
+cave_state = CaveState.FINDING_TAG
+box_moving_state = BoxMovingState.FINDING_TAG
 gather_state = GatherState.SEARCHING_ROCKS
 
 def update():
@@ -91,19 +113,39 @@ def update():
             elif now - time_start < 1:
                 move8(D_FORWARD)
             else:
-                state = RobotState.MOVE_BOX
+                state = RobotState.ENTER_CAVE
 
-        case RobotState.MOVE_BOX:  # Move box state
+        case RobotState.MOVE_BOX:  # Move box state TODO this
+            global box_moving_state
             stop_motion()
-            print("i got nun lil bro we're cooked...")
+            # Find april tag, find white contours (will be the containers), center, go up and grab
+            img, _ = cv2.imread(camera)
+            greyscale_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+            detections = at_detector.detect_april_tags(greyscale_img)
+
+            if len(detections) == 0:
+                return
+
+            found_container = False
+
+            for detection in detections:
+                if detection.tag_id in container_ids:
+                    found_container = True
+                    break
+
+            if found_container:
+                pass
+
             rotate_arm(40)
-            state = RobotState.GATHER_OUTSIDE
 
         case RobotState.GATHER_OUTSIDE:
             global gather_state
 
             match gather_state:
                 case GatherState.SEARCHING_ROCKS:
+                    # Get largest mass of contours. Go into the one in the center.
+                    # img, _ = cv2.imread(camera)
+                    # contours = mantis.find_colors()
                     pass
                 case GatherState.COLLECTING:
                     dist = US_SENSOR_PIN.read()
@@ -117,7 +159,7 @@ def update():
                 case GatherState.SEARCHING_BOX:
                     rotate(R_CW)
 
-                    img, _ = cv2.imread(camera)
+                    _, img = camera.read()
                     greyscale_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
                     detections = at_detector.detect_april_tags(greyscale_img)
@@ -127,6 +169,54 @@ def update():
 
                     for detection in detections:  # TODO
                         return
+
+                case RobotState.ENTER_CAVE:
+                    global cave_state
+                    global cave_enter_time
+
+                    match cave_state:
+                        case CaveState.FINDING_TAG:
+                            global cave_tag
+
+                            if cave_tag is None:
+                                _, img = camera.read()
+                                greyscale_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+                                detections = at_detector.detect_april_tags(greyscale_img)
+
+                                if len(detections) == 0:
+                                    return
+
+                                for detection in detections:
+                                    if detection.tag_id == 4:
+                                        cave_tag = detection
+                                        return
+
+                                move8(D_LEFT)
+                            else:
+                                center_x, center_y = cave_tag.center
+                                lower_x_bound = cam_width // 2 - center_range[0]
+                                upper_x_bound = cam_width // 2 + center_range[0]
+                                lower_y_bound = cam_height // 2 - center_range[1]
+                                upper_y_bound = cam_height // 2 + center_range[1]
+
+                                if lower_x_bound < center_x < upper_x_bound and lower_y_bound < center_y < upper_y_bound:
+                                    stop_motion()
+                                    cave_state = CaveState.IN
+                                    cave_enter_time = time.time()
+                        case CaveState.IN:
+                            move8(D_FORWARD)
+
+                            now = time.time()
+
+                            if now - cave_enter_time >= 5:
+                                cave_state = CaveState.AND_OUT
+                                cave_enter_time = now
+                        case CaveState.AND_OUT:
+                            now = time.time()
+
+                            if now - cave_enter_time >= 5:
+                                state = RobotState.MOVE_BOX
 
 
 
