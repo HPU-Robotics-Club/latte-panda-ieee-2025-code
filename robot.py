@@ -102,7 +102,7 @@ def update():
     match state:
         case RobotState.WAITING:  # Waiting state
             if is_light_on():
-                state = RobotState.ENTER_CAVE
+                    state = RobotState.ENTER_CAVE
 
         case RobotState.ESCAPE_START:  # Escape start state
             global time_start
@@ -119,7 +119,7 @@ def update():
             global box_moving_state
             stop_motion()
             # Find april tag, find white contours (will be the containers), center, go up and grab
-            img, _ = cv2.imread(camera)
+            _, img = camera.read()
             greyscale_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
             detections = at_detector.detect_april_tags(greyscale_img)
 
