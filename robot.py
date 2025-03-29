@@ -25,8 +25,8 @@ FP_ENA = board.get_pin('d:6:p')
 FP_1 = board.get_pin('d:7:o')
 FP_2 = board.get_pin('d:2:o')
 
-RD = board.get_pin('d:9:o')
-RD_PWM = board.get_pin('d:11:p')
+RD = board.get_pin('d:12:o')
+RD_PWM = board.get_pin('d:9:p')
 
 RP_ENB = board.get_pin('d:3:p')
 RP_1 = board.get_pin('d:5:o')
@@ -94,6 +94,7 @@ def update():
                 state = RobotState.MOVE_BOX
 
         case RobotState.MOVE_BOX:  # Move box state
+            stop_motion()
             print("i got nun lil bro we're cooked...")
             rotate_arm(40)
             state = RobotState.GATHER_OUTSIDE
@@ -292,6 +293,9 @@ def rotate_arm(angle):
     # board[ARM_SERVO].write(angle)
     pass
 
+
+print("Resetting existence...")
+stop_motion()
 
 print("Let the show commence!")
 
