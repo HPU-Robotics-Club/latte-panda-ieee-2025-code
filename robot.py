@@ -102,7 +102,7 @@ def update():
     match state:
         case RobotState.WAITING:  # Waiting state
             if is_light_on():
-                state = RobotState.ESCAPE_START
+                state = RobotState.ENTER_CAVE
 
         case RobotState.ESCAPE_START:  # Escape start state
             global time_start
@@ -170,53 +170,53 @@ def update():
                     for detection in detections:  # TODO
                         return
 
-                case RobotState.ENTER_CAVE:
-                    global cave_state
-                    global cave_enter_time
+        case RobotState.ENTER_CAVE:
+            global cave_state
+            global cave_enter_time
 
-                    match cave_state:
-                        case CaveState.FINDING_TAG:
-                            global cave_tag
+            match cave_state:
+                case CaveState.FINDING_TAG:
+                    global cave_tag
 
-                            if cave_tag is None:
-                                _, img = camera.read()
-                                greyscale_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+                    if cave_tag is None:
+                        _, img = camera.read()
+                        greyscale_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-                                detections = at_detector.detect_april_tags(greyscale_img)
+                        detections = at_detector.detect_april_tags(greyscale_img)
 
-                                if len(detections) == 0:
-                                    return
+                        if len(detections) == 0:
+                            return
 
-                                for detection in detections:
-                                    if detection.tag_id == 4:
-                                        cave_tag = detection
-                                        return
+                        for detection in detections:
+                            if detection.tag_id == 4:
+                                cave_tag = detection
+                                return
 
-                                move8(D_LEFT)
-                            else:
-                                center_x, center_y = cave_tag.center
-                                lower_x_bound = cam_width // 2 - center_range[0]
-                                upper_x_bound = cam_width // 2 + center_range[0]
-                                lower_y_bound = cam_height // 2 - center_range[1]
-                                upper_y_bound = cam_height // 2 + center_range[1]
+                        move8(D_LEFT)
+                    else:
+                        center_x, center_y = cave_tag.center
+                        lower_x_bound = cam_width // 2 - center_range[0]
+                        upper_x_bound = cam_width // 2 + center_range[0]
+                        lower_y_bound = cam_height // 2 - center_range[1]
+                        upper_y_bound = cam_height // 2 + center_range[1]
 
-                                if lower_x_bound < center_x < upper_x_bound and lower_y_bound < center_y < upper_y_bound:
-                                    stop_motion()
-                                    cave_state = CaveState.IN
-                                    cave_enter_time = time.time()
-                        case CaveState.IN:
-                            move8(D_FORWARD)
+                        if lower_x_bound < center_x < upper_x_bound and lower_y_bound < center_y < upper_y_bound:
+                            stop_motion()
+                            cave_state = CaveState.IN
+                            cave_enter_time = time.time()
+                case CaveState.IN:
+                    move8(D_FORWARD)
 
-                            now = time.time()
+                    now = time.time()
 
-                            if now - cave_enter_time >= 5:
-                                cave_state = CaveState.AND_OUT
-                                cave_enter_time = now
-                        case CaveState.AND_OUT:
-                            now = time.time()
+                    if now - cave_enter_time >= 5:
+                        cave_state = CaveState.AND_OUT
+                        cave_enter_time = now
+                case CaveState.AND_OUT:
+                    now = time.time()
 
-                            if now - cave_enter_time >= 5:
-                                state = RobotState.MOVE_BOX
+                    if now - cave_enter_time >= 5:
+                        state = RobotState.MOVE_BOX
 
 
 
