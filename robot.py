@@ -46,7 +46,7 @@ class RobotState(Enum):
 print("Loading capture and april tag detector...")
 
 at_detector = AprilTagDetector()
-camera = cv2.VideoCapture()
+camera = cv2.VideoCapture(0)
 state = RobotState.WAITING
 
 cam_width = int(camera.get(cv2.CAP_PROP_FRAME_WIDTH))
@@ -180,17 +180,19 @@ def update():
 
                     if cave_tag is None:
                         _, img = camera.read()
-                        greyscale_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-                        detections = at_detector.detect_april_tags(greyscale_img)
+                        if img is not None:
+                            greyscale_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-                        if len(detections) == 0:
-                            return
+                            detections = at_detector.detect_april_tags(greyscale_img)
 
-                        for detection in detections:
-                            if detection.tag_id == 4:
-                                cave_tag = detection
+                            if len(detections) == 0:
                                 return
+
+                            for detection in detections:
+                                if detection.tag_id == 4:
+                                    cave_tag = detection
+                                    return
 
                         move8(D_LEFT)
                     else:
