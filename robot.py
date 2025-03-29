@@ -55,7 +55,7 @@ def is_light_on() -> bool:
     darkness = LIGHT_SENSOR_PIN.read()
     print(f"fall into darkness... {darkness}")
 
-    if darkness is not None and darkness < 1000:
+    if darkness is not None and darkness > 0.8:
         return True
 
     return False
