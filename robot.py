@@ -167,7 +167,7 @@ def stop_motion():
     drive_fd(0, 0)
     drive_fp(0, 0)
     drive_rd(0, 0)
-    drive_fp(0, 0)
+    drive_rp(0, 0)
 
 #Start move8 Defintion
 def move8(direction):
